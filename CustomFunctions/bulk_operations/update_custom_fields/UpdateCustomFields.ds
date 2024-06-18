@@ -11,6 +11,7 @@ string UPDATECUSTOMFIELDS(string subscriptionID, string cfValue)
 
 	accessToken      = "";
 	organizationID   = "";
+	domain = "https://www.zohoapis.com/billing/v1";
 	
 	customFieldsList = list();
 	customField      = Map();
@@ -27,9 +28,15 @@ string UPDATECUSTOMFIELDS(string subscriptionID, string cfValue)
 	headerMap = Map();
 	headerMap.put("Authorization", "Zoho-oauthtoken "+accessToken);
 	
-	url = "https://subscriptions.zoho.com/api/v1/subscriptions/" + subscriptionID + "/customfields?authtoken=" + authtoken + "&organization_id=" +organizationID;
+	url = domain + "/subscriptions/" + subscriptionID + "?organization_id=" + organizationID;
 
-	response = postUrl(url, payloadMap.toString(), headerMap);
+	response = invokeurl
+	[
+		url :url
+		type :PUT
+		parameters:data.toString()
+		headers:headerMap
+	];
 	
 	if(response.get("code") == 0)
 	{
