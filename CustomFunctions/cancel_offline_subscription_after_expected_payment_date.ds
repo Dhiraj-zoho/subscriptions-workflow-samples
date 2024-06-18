@@ -25,7 +25,7 @@
 */
 
 organizationID = organization.get("organization_id");
-domain = “https://www.zohoapis.com/billing/v1”;
+domain = "https://www.zohoapis.com/billing/v1";
 subscriptionList = invoice.get("subscriptions").toJSONList(); // Place the churn message ID value here, if your organization is using advanced churn settings. If not, leave it blank as such.
 churnMessageID = "";
 params = Map();
