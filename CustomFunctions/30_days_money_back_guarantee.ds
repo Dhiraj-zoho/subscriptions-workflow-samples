@@ -28,7 +28,7 @@ if(totalDays > dayToConsider)
 	//If the subscription is active for more than (daysToConsider) 30 days, we simnply exit the function.
 	return;
 }
-domain = "https://www.zohoapis.com/billing/v1“;
+domain = "https://www.zohoapis.com/billing/v1";
 organizationID = organization.get("organization_id");
 
 invoiceID = subscriptions.get("child_invoice_id");
