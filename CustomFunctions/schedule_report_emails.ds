@@ -6,103 +6,80 @@ Place your {{connection name}} in "YOUR_CONNECTION_NAME" variables.
 
 */
 
-currentDate = zoho.currentdate.toString("yyyy-MM-dd");
-currentTime = currentDate.toTime();
-// -- Obtaining the date 7 days earlier.
-lastWeekTime = currentTime.addWeek(-1);
-lastWeekDate = lastWeekTime.toString("yyyy-MM-dd");
-domain = "https://www.zohoapis.com/billing/v1";
-linkDomain = "https://billing.zoho.com/app#";
-authorizationParams = "&organization_id=" + organization.get("organization_id");
-dateParams = "from_date=" + lastWeekDate + "&to_date=" + currentDate;
-// -- Fetching Last opportunities report.
-url = domain + "/reports/lost_opportunities?response_option=2&" + dateParams + authorizationParams;
-request = "Retrieving Lost Opportunities Report";
-response = invokeurl
-[
-	url :url
-	type :GET
-	connection:"YOUR_CONNECTION_NAME"
-];
-if(response.get("code") != 0)
+
+invoiceStatus = invoice.get("status");
+if(!invoiceStatus.equalsIgnoreCase("pending"))
 {
-	errorMessage = response.get("message");
-	sendmail
-	[
-		from :zoho.adminuserid
-		to :zoho.adminuserid
-		subject :"Error occured in Email Notifications Scheduler while " + request
-		message :"<b>Affected url :</b><br>" + url + "<br><b>Error Message</b><br>" + errorMessage
-	]
-	return;
+	// -- Place the Zoho Sheet ID between the quotes obtained from the URL bar of the browser and also the worksheet name.
+	sheetID = "";
+	worksheetName = "";
+	domain = "https://www.zohoapis.com/billing/v1";
+	orgID = organization.get("organization_id");
+	invID = invoice.get("invoice_id");
+	custID = invoice.get("customer_id");
+	customerName = invoice.get("customer_name");
+	criteria = Map();
+	criteria.put("criteria","\"Customer ID\"=\"" + custID + "\"");
+	response = zoho.sheet.getRecords(sheetID,worksheetName,criteria,"YOUR_CONNECTION_NAME");
+	if(response.get("status") == "success" && response.get("records_count") > 0)
+	{
+		record = response.get("records").get("0");
+		lastMonthReading = record.get("Last Month Reading");
+		currentMonthReading = record.get("Closing Reading");
+		totalReading = currentMonthReading - lastMonthReading;
+		/* In this example, invoice will be updated if the reading values exceed 100 units.
+		   Modify it for your needs.
+		*/
+		if(totalReading > 100)
+		{
+			invoiceItems = invoice.get("invoice_items").toJSONList();
+			rate = totalReading - 100;
+			invoiceItem = Map();
+			invoiceItem.put("quantity","1");
+			invoiceItem.put("price",rate);
+			invoiceItem.put("description","Charges based on metered billing usage.");
+			invoiceItems.add(invoiceItem);
+			paramsMap = Map();
+			paramsMap.put("invoice_items",invoiceItems);
+			paramsMap.put("reason","Invoice line items updated based on usage.");
+			url = domain + "/invoices/" + invID + "?organization_id=" + orgID;
+			request = "Updating Invoice";
+			resp = invokeurl
+			[
+				url :url
+				type :PUT
+				parameters:paramsMap.tostring()
+				connection:"YOUR_CONNECTION_NAME"
+			];
+			if(resp.get("code") == 0)
+			{
+				data = Map();				
+				criteria = "\"Customer ID\"=\""+custID+"\"";
+				data.put("Status", "Updated");
+				response = zoho.sheet.updateRecords(sheetID, worksheetName, criteria, data, Map(), "YOUR_CONNECTION_NAME");
+			}
+			else
+			{
+				errorMessage = resp.get("message");
+				sendmail
+				[
+					from :zoho.adminuserid
+					to :zoho.adminuserid
+					subject :"Error occured in Google sheet integration custom function while " + request
+					message :"<b>Affected url :</b><br>" + url + "<br><b>Error Message</b><br>" + errorMessage
+				]
+			}
+		}
+	}
+	else
+	{
+		sendmail
+		[
+			from :zoho.adminuserid
+			to :zoho.adminuserid
+			subject :"Error occured in Google sheet integration custom function"
+			message :"The customer is not found in the Google Sheet."
+		]
+	}
 }
-else
-{
-	lastOpportunitiesCount = response.get("payments").size();
-	lastOpportunitiesUrl = linkDomain + "/reports/lost-opportunities?from_date=" + lastWeekDate;
-}
-// -- Getting Trial Expired Subscriptions List.
-url = domain + "/subscriptions?filter_by=SubscriptionStatus.TRIAL_EXPIRED_PREVIOUS_WEEK&response_option=2" + authorizationParams;
-request = "Retrieving Trial Expired Subscriptions";
-response = invokeurl
-[
-	url :url
-	type :GET
-	connection:"YOUR_CONNECTION_NAME"
-];
-if(response.get("code") != 0)
-{
-	errorMessage = response.get("message");
-	sendmail
-	[
-		from :zoho.adminuserid
-		to :zoho.adminuserid
-		subject :"Error occured in Email Notifications Scheduler while " + request
-		message :"<b>Affected url :</b><br>" + url + "<br><b>Error Message</b><br>" + errorMessage
-	]
-	return;
-}
-else
-{
-	pageContext = response.get("page_context");
-	trialExpiredSubscriptionsCount = pageContext.get("total");
-	trialExpiredSubscriptionsUrl = linkDomain + "/reports/activecustomers?" + dateParams;
-	info trialExpiredSubscriptionsUrl;
-}
-// -- Getting Churned Subscriptions
-url = domain + "/reports/churn?response_option=2&" + dateParams + authorizationParams;
-request = "Retrieving Churned Subscriptions";
-response = invokeurl
-[
-	url :url
-	type :GET
-	connection:"YOUR_CONNECTION_NAME"
-];
-if(response.get("code") != 0)
-{
-	errorMessage = response.get("message");
-	sendmail
-	[
-		from :zoho.adminuserid
-		to :zoho.adminuserid
-		subject :"Error occured in Email Notifications Scheduler while " + request
-		message :"<b>Affected url :</b><br>" + url + "<br><b>Error Message</b><br>" + errorMessage
-	]
-	return;
-}
-else
-{
-	pageContext = response.get("page_context");
-	churnedSubscriptionsCount = pageContext.get("total");
-	churnedSubscriptionsUrl = linkDomain + "/reports/cancellation?" + dateParams;
-}
-// -- Construct email message.
-subjectText = "Weekly Subscription Reports";
-messageText = "<b>Last Opportunities Report</b><br>Count : " + lastOpportunitiesCount + "<br> URL : " + lastOpportunitiesUrl + "<br><br><b>Trial Expired Subscriptions Report</b><br>Count : " + trialExpiredSubscriptionsCount + "<br> URL : " + trialExpiredSubscriptionsUrl + "<br><br><b>Churned Subscriptions Report</b><br>Count : " + churnedSubscriptionsCount + "<br> URL : " + churnedSubscriptionsUrl;
-sendmail
-[
-	from :zoho.adminuserid
-	to :zoho.adminuserid
-	subject :subjectText
-	message :messageText
-]
+
