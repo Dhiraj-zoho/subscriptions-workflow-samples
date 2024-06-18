@@ -11,6 +11,7 @@ string UPDATESALESPERSON(string subscriptionID, string salesPersonName)
 
 	accessToken      = "";
 	organizationID   = "";
+	domain = "https://www.zohoapis.com/billing/v1";
 
 	data = Map();
 	data.put("salesperson_name",salesPersonName);
@@ -18,7 +19,7 @@ string UPDATESALESPERSON(string subscriptionID, string salesPersonName)
 	headerMap = Map();
 	headerMap.put("Authorization", "Zoho-oauthtoken "+accessToken);
 
-	url = "https://subscriptions.zoho.com/api/v1/subscriptions/" + subscriptionID + "?authtoken=" + authtoken + "&organization_id=" +organizationID;
+	url = domain + "/subscriptions/" + subscriptionID + "?organization_id=" + organizationID;
 
 	response = invokeUrl [
     		url : url
