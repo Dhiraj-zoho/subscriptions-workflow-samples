@@ -17,33 +17,27 @@
 
 */
 
-// -- Paste your latefee Ledger Account ID in the below variable.
-lateFeeAccountID  = "";
-
-// -- Change the late fee amount and invoice description as per your needs.
-lateFeeAmount     = 10;
-invReason	  = "Late Payment Fee";
-invDescription    = "Charges for late payment for the invoice "+invoice.get("number");
-
-organizationID    = organization.get("organization_id");
-subscriptionID    = invoice.get("subscriptions").get(0).get("subscription_id");
-
+lateFeeAccountID = ""; // -- Paste your latefee Ledger Account ID in the below variable.
+lateFeeAmount = 10; // -- Change the late fee amount and invoice description as per your needs.
+invReason = "Late Payment Fee";
+invDescription = "Charges for late payment for the invoice " + invoice.get("number");
+organizationID = organization.get("organization_id");
+subscriptionID = invoice.get("subscriptions").get(0).get("subscription_id");
+domain = “https://www.zohoapis.com/billing/v1”;
 payloadMap = Map();
 payloadMap.put("account_id", lateFeeAccountID);
-payloadMap.put("amount", lateFeeAmount);
-payloadMap.put("name", invReason);
-payloadMap.put("description", invDescription);
-
-url 		= "https://subscriptions.zoho.com/api/v1/subscriptions/"+subscriptionID+"/charge?organization_id="+organizationID;
-request 	= "Charging Late Fee for "+invoice.get("number");
-
-response = invokeUrl [
-    url : url
-    type : POST
-    parameters : payloadMap.toString()
-    connection : "YOUR_CONNECTION_NAME"
+payloadMap.put("amount",lateFeeAmount);
+payloadMap.put("name",invReason);
+payloadMap.put("description",invDescription);
+url = domain + "/subscriptions/" + subscriptionID + "/charge?organization_id=" + organizationID;
+request = "Charging Late Fee for " + invoice.get("number");
+response = invokeurl
+[
+	url :url
+	type :POST
+	parameters:payloadMap.toString()
+	connection:"YOUR_CONNECTION_NAME"
 ];
-
 // -- If the custom function fails to execute, an email will be sent to admin's email address.
 if(response.get("code") != 0)
 {
