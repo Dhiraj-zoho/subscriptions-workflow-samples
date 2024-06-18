@@ -1,4 +1,3 @@
-
 /*
    This is a sample Custom Function written to be used in Workflow automation of Zoho Subscriptions, 
    a recurring billing and subscriptions management software.
@@ -17,10 +16,10 @@
 defaultCountryCode = "";
 
 mobileNo = subscriptions.get("contactpersons").get("0").get("mobile");
+mobileNo = "";
 length   = len(mobileNo);
 
 // If mobile number is not present for the customer (or) if an invalid number is found, an email is sent to admin.
-
 if(mobileNo == "" || length < 10)
 {
 	customerName = subscriptions.get("customer").get("display_name");
@@ -34,7 +33,6 @@ if(mobileNo == "" || length < 10)
 	return;
 }
 
-
 if(length == 10)
 {
 	mobileNo = defaultCountryCode + mobileNo;
@@ -43,20 +41,25 @@ if(length == 10)
 planName    = subscriptions.get("name");
 textmessage = "Subscription has been cancelled for the Plan - " + planName;
 
-// -- Paste the twilio Mobile number, Account SID and Auth Token from Twilio's console.
-twilioMobileNo  = "";
-twilioAccSId    = "";
-twilioAuthtoken = "";
+// Paste the Twilio Account SID and Auth Token
+account_sid = "";
+auth_token = "";
 
-baseEncoded = zoho.encryption.base64Encode(twilioAccSId + ":" + twilioAuthtoken);
-encode = baseEncoded.removeFirstOccurence("\n");
+// Paste the Twilio phone number (From number)
+from_phone_number = ""; // Replace with your Twilio phone number
 
-headermap = Map();
-headermap.put("Authorization","Basic " + encode);
-
-infomap = Map();
-infomap.put("To", mobileNo);
-infomap.put("From", twilioMobileNo);
-infomap.put("Body", textmessage);
-
-respp = postUrl("https://api.twilio.com/2010-04-01/Accounts/" + twilioAccSId + "/Messages.json",infomap,headermap);
+// Message to send
+text_message = "Subscription has been cancelled for the Plan - " + planName;
+url = "https://api.twilio.com/2010-04-01/Accounts/" + account_sid + "/Messages.json";
+payload = map();
+payload.put("From", from_phone_number);
+payload.put("To", mobileNo);
+payload.put("Body", text_message);
+response = invokeurl
+[
+	url: url
+	type: POST
+	parameters: payload
+	connection: "YOUR_CONNECTION_NAME"
+];
+info response;
